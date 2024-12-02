@@ -1,15 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { PlusCircle, Trash2, Square, Circle, Diamond, Link, Edit2 } from 'lucide-react';
 
-interface DragOffset {
-  x: number;
-  y: number;
-  elementId?: number;
-}
+// Shape types
+type ShapeType = 'ENTITY' | 'WEAK_ENTITY' | 'ATTRIBUTE' | 'DERIVED_ATTRIBUTE' | 'MULTI_VALUED_ATTRIBUTE' | 'RELATIONSHIP';
 
 interface Element {
   id: number;
-  type: string;
+  type: ShapeType;
   x: number;
   y: number;
   label: string;
@@ -24,16 +21,26 @@ interface Connection {
   toCardinality: string;
 }
 
-// History interface for undo/redo
-interface History {
-  connections: Connection[];
+interface DragOffset {
+  x: number;
+  y: number;
+  elementId?: number;
+}
+
+interface ShapeProps extends Element {
+  editingLabel: number | null;
+  updateLabel: (id: number, label: string) => void;
+  setEditingLabel: (id: number | null) => void;
+}
+
+interface ElementType {
+  icon: React.ReactNode;
+  label: string;
+  shape: (props: Element) => React.ReactElement;
+  connectionPoint: (x: number, y: number) => { x: number; y: number };
 }
 
 const ERDiagramApp: React.FC = () => {
-  // History stacks for undo/redo
-  const [undoStack, setUndoStack] = useState<History[]>([]);
-  const [redoStack, setRedoStack] = useState<History[]>([]);
-
   const [elements, setElements] = useState<Element[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState<DragOffset>({ x: 0, y: 0 });
@@ -42,52 +49,20 @@ const ERDiagramApp: React.FC = () => {
   const [editingCardinality, setEditingCardinality] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<number | null>(null);
 
-  // Handle keyboard shortcuts for undo/redo
+  // Clear connecting state when clicking outside
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('svg')) {
+        setConnecting(null);
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undoStack, redoStack]);
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
 
-  const handleUndo = () => {
-    if (undoStack.length > 0) {
-      const previousState = undoStack[undoStack.length - 1];
-      const currentState: History = { connections: [...connections] };
-      
-      setRedoStack([...redoStack, currentState]);
-      setUndoStack(undoStack.slice(0, -1));
-      setConnections(previousState.connections);
-    }
-  };
-
-  const handleRedo = () => {
-    if (redoStack.length > 0) {
-      const nextState = redoStack[redoStack.length - 1];
-      const currentState: History = { connections: [...connections] };
-      
-      setUndoStack([...undoStack, currentState]);
-      setRedoStack(redoStack.slice(0, -1));
-      setConnections(nextState.connections);
-    }
-  };
-
-  // Save state to undo stack when connections change
-  const saveToHistory = (newConnections: Connection[]) => {
-    setUndoStack([...undoStack, { connections: [...connections] }]);
-    setRedoStack([]); // Clear redo stack when new action is performed
-    setConnections(newConnections);
-  };
-
-  const elementTypes = {
+  const elementTypes: Record<ShapeType, ElementType> = {
     ENTITY: {
       icon: <Square className="w-6 h-6" />,
       label: 'Entity',
@@ -349,8 +324,8 @@ const ERDiagramApp: React.FC = () => {
     }
   };
 
-  const addElement = (type: string) => {
-    const newElement = {
+  const addElement = (type: ShapeType) => {
+    const newElement: Element = {
       id: Date.now(),
       type,
       x: 100,
@@ -375,12 +350,17 @@ const ERDiagramApp: React.FC = () => {
 
   const deleteElement = (id: number) => {
     setElements(elements.filter(el => el.id !== id));
-    saveToHistory(connections.filter(conn => 
+    setConnections(connections.filter(conn => 
       conn.from !== id && conn.to !== id
     ));
+    if (connecting?.id === id) {
+      setConnecting(null);
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent, element: Element) => {
+    e.stopPropagation();
+    
     if (connecting) {
       if (connecting.id !== element.id) {
         const existingConnection = connections.find(conn => 
@@ -389,9 +369,9 @@ const ERDiagramApp: React.FC = () => {
         );
 
         if (existingConnection) {
-          saveToHistory(connections.filter(conn => conn.id !== existingConnection.id));
+          setConnections(connections.filter(conn => conn.id !== existingConnection.id));
         } else {
-          saveToHistory([...connections, {
+          setConnections([...connections, {
             id: Date.now(),
             from: connecting.id,
             to: element.id,
@@ -402,10 +382,8 @@ const ERDiagramApp: React.FC = () => {
       }
       setConnecting(null);
     } else {
-      const svg = e.target.closest('svg');
-      if (!svg) return;
-      
-      const rect = svg.getBoundingClientRect();
+      const svg = e.target as SVGElement;
+      const rect = svg.closest('svg')!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
@@ -418,7 +396,9 @@ const ERDiagramApp: React.FC = () => {
     }
   };
 
-  const startConnecting = (element: Element) => {
+  const startConnecting = (e: React.MouseEvent, element: Element) => {
+    e.stopPropagation();
+    
     if (connecting?.id === element.id) {
       setConnecting(null);
     } else {
@@ -429,10 +409,8 @@ const ERDiagramApp: React.FC = () => {
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging || !dragOffset.elementId) return;
 
-    const svg = e.target.closest('svg');
-    if (!svg) return;
-
-    const rect = svg.getBoundingClientRect();
+    const svg = e.target as SVGElement;
+    const rect = svg.closest('svg')!.getBoundingClientRect();
     const x = e.clientX - rect.left - dragOffset.x;
     const y = e.clientY - rect.top - dragOffset.y;
 
@@ -448,7 +426,7 @@ const ERDiagramApp: React.FC = () => {
   };
 
   const updateCardinality = (connId: number, end: 'from' | 'to', value: string) => {
-    const newConnections = connections.map(conn => {
+    setConnections(connections.map(conn => {
       if (conn.id === connId) {
         return {
           ...conn,
@@ -456,8 +434,7 @@ const ERDiagramApp: React.FC = () => {
         };
       }
       return conn;
-    });
-    saveToHistory(newConnections);
+    }));
     setEditingCardinality(null);
   };
 
@@ -542,83 +519,94 @@ const ERDiagramApp: React.FC = () => {
 
   const renderElementControls = (element: Element) => (
     <g className="cursor-pointer">
-      <circle
-        cx={element.x + 125}
-        cy={element.y - 5}
-        r="10"
-        className="fill-red-500"
-        onClick={() => deleteElement(element.id)}
-      />
-      <Trash2
-        className="w-4 h-4 text-white"
-        style={{
-          transform: `translate(${element.x + 121}px, ${element.y - 7}px)`
-        }}
-      />
+      {/* Delete button */}
+      <g onClick={(e) => {
+        e.stopPropagation();
+        deleteElement(element.id);
+      }}>
+        <circle
+          cx={element.x + 95}
+          cy={element.y - 5}
+          r="7"
+          className="fill-red-500"
+        />
+        <Trash2
+          className="w-3 h-3 text-white"
+          style={{
+            transform: `translate(${element.x + 92}px, ${element.y - 7}px)`
+          }}
+        />
+      </g>
       
+      {/* Connect button */}
+      <g onClick={(e) => startConnecting(e, element)}>
+        <circle
+          cx={element.x + 115}
+          cy={element.y - 5}
+          r="7"
+          className={`${connecting?.id === element.id ? 'fill-green-500' : 'fill-blue-500'}`}
+        />
+        <Link
+          className="w-3 h-3 text-white"
+          style={{
+            transform: `translate(${element.x + 112}px, ${element.y - 7}px)`
+          }}
+        />
+      </g>
+
+      {/* Rename button */}
+      <g onClick={(e) => {
+        e.stopPropagation();
+        setEditingLabel(element.id);
+      }}>
+        <circle
+          cx={element.x + 135}
+          cy={element.y - 5}
+          r="7"
+          className="fill-purple-500"
+        />
+        <Edit2
+          className="w-3 h-3 text-white"
+          style={{
+            transform: `translate(${element.x + 132}px, ${element.y - 7}px)`
+          }}
+        />
+      </g>
+      
+      {/* Primary key toggle for attributes */}
       {element.type === 'ATTRIBUTE' && (
-        <g onClick={() => togglePrimaryKey(element.id)}>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          togglePrimaryKey(element.id);
+        }}>
           <circle
-            cx={element.x + 125}
-            cy={element.y + 15}
-            r="10"
+            cx={element.x + 155}
+            cy={element.y - 5}
+            r="7"
             className={`${element.isPrimary ? 'fill-green-500' : 'fill-gray-400'}`}
           />
           <text
-            x={element.x + 125}
-            y={element.y + 19}
-            className="text-white text-xs font-bold"
+            x={element.x + 155}
+            y={element.y - 2}
+            className="text-white text-[10px] font-bold"
             textAnchor="middle"
           >
             PK
           </text>
         </g>
       )}
-      
-      <g onClick={() => startConnecting(element)}>
-        <circle
-          cx={element.x + 125}
-          cy={element.y + 35}
-          r="10"
-          className={`${connecting?.id === element.id ? 'fill-green-500' : 'fill-blue-500'}`}
-        />
-        <Link
-          className="w-4 h-4 text-white"
-          style={{
-            transform: `translate(${element.x + 121}px, ${element.y + 33}px)`
-          }}
-        />
-      </g>
     </g>
   );
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <div className="bg-white p-4 border-b">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-xl font-bold">ER Diagram Editor</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={handleUndo}
-              disabled={undoStack.length === 0}
-              className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Undo
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={redoStack.length === 0}
-              className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Redo
-            </button>
-          </div>
-        </div>
+        <h1 className="text-xl font-bold mb-4">ER Diagram Editor</h1>
         <div className="flex flex-wrap gap-2">
           {Object.entries(elementTypes).map(([type, { icon, label }]) => (
             <button
               key={type}
-              onClick={() => addElement(type)}
+              onClick={() => addElement(type as ShapeType)}
               className="flex items-center px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               {icon}
