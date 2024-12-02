@@ -1,9 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { PlusCircle, Trash2, Square, Circle, Diamond, Link } from 'lucide-react';
 
+// Shape types
+type ShapeType = 'ENTITY' | 'WEAK_ENTITY' | 'ATTRIBUTE' | 'DERIVED_ATTRIBUTE' | 'MULTI_VALUED_ATTRIBUTE' | 'RELATIONSHIP';
+
 interface Element {
   id: number;
-  type: string;
+  type: ShapeType;
   x: number;
   y: number;
   label: string;
@@ -22,6 +25,19 @@ interface DragOffset {
   x: number;
   y: number;
   elementId?: number;
+}
+
+interface ShapeProps extends Element {
+  editingLabel: number | null;
+  updateLabel: (id: number, label: string) => void;
+  setEditingLabel: (id: number | null) => void;
+}
+
+interface ElementType {
+  icon: React.ReactNode;
+  label: string;
+  shape: (props: Element) => React.ReactElement;
+  connectionPoint: (x: number, y: number) => { x: number; y: number };
 }
 
 const ERDiagramApp: React.FC = () => {
@@ -45,7 +61,7 @@ const ERDiagramApp: React.FC = () => {
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
-  const elementTypes = {
+  const elementTypes: Record<ShapeType, ElementType> = {
     ENTITY: {
       icon: <Square className="w-6 h-6" />,
       label: 'Entity',
@@ -57,6 +73,55 @@ const ERDiagramApp: React.FC = () => {
             width="120"
             height="60"
             className="fill-white stroke-black stroke-2"
+          />
+          {editingLabel === id ? (
+            <foreignObject x={x} y={y} width="120" height="60">
+              <div className="h-full flex items-center justify-center">
+                <input
+                  type="text"
+                  value={label}
+                  className="w-full text-center bg-white border-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => updateLabel(id, e.target.value)}
+                  onBlur={() => setEditingLabel(null)}
+                  onKeyDown={(e) => e.key === 'Enter' && setEditingLabel(null)}
+                  autoFocus
+                />
+              </div>
+            </foreignObject>
+          ) : (
+            <text
+              x={x + 60}
+              y={y + 35}
+              className="text-sm text-center cursor-pointer"
+              textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
+            >
+              {label}
+            </text>
+          )}
+        </g>
+      ),
+      connectionPoint: (x: number, y: number) => ({ x: x + 60, y: y + 30 })
+    },
+    WEAK_ENTITY: {
+      icon: <Square className="w-6 h-6" />,
+      label: 'Weak Entity',
+      shape: ({ x, y, label, id }: Element) => (
+        <g>
+          <rect
+            x={x}
+            y={y}
+            width="120"
+            height="60"
+            className="fill-white stroke-black stroke-2"
+          />
+          <rect
+            x={x + 5}
+            y={y + 5}
+            width="110"
+            height="50"
+            className="fill-white stroke-black stroke-2"
+            fillOpacity="0"
           />
           {editingLabel === id ? (
             <foreignObject x={x} y={y} width="120" height="60">
@@ -125,6 +190,89 @@ const ERDiagramApp: React.FC = () => {
       ),
       connectionPoint: (x: number, y: number) => ({ x: x + 40, y: y + 30 })
     },
+    DERIVED_ATTRIBUTE: {
+      icon: <Circle className="w-6 h-6" />,
+      label: 'Derived',
+      shape: ({ x, y, label, id }: Element) => (
+        <g>
+          <circle
+            cx={x + 40}
+            cy={y + 30}
+            r="30"
+            className="fill-white stroke-black stroke-2"
+            strokeDasharray="5,5"
+          />
+          {editingLabel === id ? (
+            <foreignObject x={x + 10} y={y + 15} width="60" height="30">
+              <input
+                type="text"
+                value={label}
+                className="w-full text-center bg-white border-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => updateLabel(id, e.target.value)}
+                onBlur={() => setEditingLabel(null)}
+                onKeyDown={(e) => e.key === 'Enter' && setEditingLabel(null)}
+                autoFocus
+              />
+            </foreignObject>
+          ) : (
+            <text
+              x={x + 40}
+              y={y + 35}
+              className="text-sm text-center cursor-pointer"
+              textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
+            >
+              {label}
+            </text>
+          )}
+        </g>
+      ),
+      connectionPoint: (x: number, y: number) => ({ x: x + 40, y: y + 30 })
+    },
+    MULTI_VALUED_ATTRIBUTE: {
+      icon: <Circle className="w-6 h-6" />,
+      label: 'Multi-Valued',
+      shape: ({ x, y, label, id }: Element) => (
+        <g>
+          <circle
+            cx={x + 40}
+            cy={y + 30}
+            r="30"
+            className="fill-white stroke-black stroke-2"
+          />
+          <circle
+            cx={x + 40}
+            cy={y + 30}
+            r="25"
+            className="fill-none stroke-black stroke-2"
+          />
+          {editingLabel === id ? (
+            <foreignObject x={x + 10} y={y + 15} width="60" height="30">
+              <input
+                type="text"
+                value={label}
+                className="w-full text-center bg-white border-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => updateLabel(id, e.target.value)}
+                onBlur={() => setEditingLabel(null)}
+                onKeyDown={(e) => e.key === 'Enter' && setEditingLabel(null)}
+                autoFocus
+              />
+            </foreignObject>
+          ) : (
+            <text
+              x={x + 40}
+              y={y + 35}
+              className="text-sm text-center cursor-pointer"
+              textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
+            >
+              {label}
+            </text>
+          )}
+        </g>
+      ),
+      connectionPoint: (x: number, y: number) => ({ x: x + 40, y: y + 30 })
+    },
     RELATIONSHIP: {
       icon: <Diamond className="w-6 h-6" />,
       label: 'Relationship',
@@ -163,7 +311,7 @@ const ERDiagramApp: React.FC = () => {
     }
   };
 
-  const addElement = (type: string) => {
+  const addElement = (type: ShapeType) => {
     const newElement: Element = {
       id: Date.now(),
       type,
@@ -422,7 +570,7 @@ const ERDiagramApp: React.FC = () => {
           {Object.entries(elementTypes).map(([type, { icon, label }]) => (
             <button
               key={type}
-              onClick={() => addElement(type)}
+              onClick={() => addElement(type as ShapeType)}
               className="flex items-center px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               {icon}

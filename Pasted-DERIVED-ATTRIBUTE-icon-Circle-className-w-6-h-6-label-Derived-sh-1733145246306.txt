@@ -1,0 +1,83 @@
+DERIVED_ATTRIBUTE: {
+      icon: <Circle className="w-6 h-6" />,
+      label: 'Derived',
+      shape: ({ x, y, label, id }) => (
+        <g>
+          <circle
+            cx={x + 40}
+            cy={y + 30}
+            r="30"
+            className="fill-white stroke-black stroke-2"
+            strokeDasharray="5,5"
+          />
+          {editingLabel === id ? (
+            <foreignObject x={x + 10} y={y + 15} width="60" height="30">
+              <input
+                type="text"
+                value={label}
+                className="w-full text-center bg-white border-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => updateLabel(id, e.target.value)}
+                onBlur={() => setEditingLabel(null)}
+                onKeyDown={(e) => e.key === 'Enter' && setEditingLabel(null)}
+                autoFocus
+              />
+            </foreignObject>
+          ) : (
+            <text
+              x={x + 40}
+              y={y + 35}
+              className="text-sm text-center cursor-pointer"
+              textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
+            >
+              {label}
+            </text>
+          )}
+        </g>
+      ),
+      connectionPoint: (x, y) => ({ x: x + 40, y: y + 30 })
+    },
+    MULTI_VALUED_ATTRIBUTE: {
+      icon: <Circle className="w-6 h-6" />,
+      label: 'Multi-Valued',
+      shape: ({ x, y, label, id }) => (
+        <g>
+          <circle
+            cx={x + 40}
+            cy={y + 30}
+            r="30"
+            className="fill-white stroke-black stroke-2"
+          />
+          <circle
+            cx={x + 40}
+            cy={y + 30}
+            r="25"
+            className="fill-none stroke-black stroke-2"
+          />
+          {editingLabel === id ? (
+            <foreignObject x={x + 10} y={y + 15} width="60" height="30">
+              <input
+                type="text"
+                value={label}
+                className="w-full text-center bg-white border-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => updateLabel(id, e.target.value)}
+                onBlur={() => setEditingLabel(null)}
+                onKeyDown={(e) => e.key === 'Enter' && setEditingLabel(null)}
+                autoFocus
+              />
+            </foreignObject>
+          ) : (
+            <text
+              x={x + 40}
+              y={y + 35}
+              className="text-sm text-center cursor-pointer"
+              textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
+            >
+              {label}
+            </text>
+          )}
+        </g>
+      ),
+      connectionPoint: (x, y) => ({ x: x + 40, y: y + 30 })
+    },
