@@ -1,76 +1,21 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { PlusCircle, Trash2, Square, Circle, Diamond, Link, Edit2 } from 'lucide-react';
 
-// Shape types
-type ShapeType = 'ENTITY' | 'WEAK_ENTITY' | 'ATTRIBUTE' | 'DERIVED_ATTRIBUTE' | 'MULTI_VALUED_ATTRIBUTE' | 'RELATIONSHIP';
-
-interface Element {
-  id: number;
-  type: ShapeType;
-  x: number;
-  y: number;
-  label: string;
-  isPrimary?: boolean;
-}
-
-interface Connection {
-  id: number;
-  from: number;
-  to: number;
-  fromCardinality: string;
-  toCardinality: string;
-}
-
-interface DragOffset {
-  x: number;
-  y: number;
-  elementId?: number;
-}
-
-interface ShapeProps extends Element {
-  editingLabel: number | null;
-  updateLabel: (id: number, label: string) => void;
-  setEditingLabel: (id: number | null) => void;
-}
-
-interface ElementType {
-  icon: React.ReactNode;
-  label: string;
-  shape: (props: Element) => React.ReactElement;
-  connectionPoint: (x: number, y: number) => { x: number; y: number };
-}
-
-const ERDiagramApp: React.FC = () => {
-  const [elements, setElements] = useState<Element[]>([]);
+const ERDiagramApp = () => {
+  const [elements, setElements] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState<DragOffset>({ x: 0, y: 0 });
-  const [connecting, setConnecting] = useState<Element | null>(null);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [editingCardinality, setEditingCardinality] = useState<string | null>(null);
-  const [editingLabel, setEditingLabel] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [connecting, setConnecting] = useState(null);
+  const [connections, setConnections] = useState([]);
+  const [editingCardinality, setEditingCardinality] = useState(null);
+  const [editingLabel, setEditingLabel] = useState(null);
 
-  // Clear connecting state when clicking outside
-  useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && !target.closest('svg')) {
-        setConnecting(null);
-      }
-    };
-
-    document.addEventListener('click', handleGlobalClick);
-    return () => document.removeEventListener('click', handleGlobalClick);
-  }, []);
-
-  const elementTypes: Record<ShapeType, ElementType> = {
+  const elementTypes = {
     ENTITY: {
       icon: <Square className="w-6 h-6" />,
       label: 'Entity',
-      shape: ({ x, y, label, id }: Element) => (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          setEditingLabel(id);
-        }}>
+      shape: ({ x, y, label, id }) => (
+        <g>
           <rect
             x={x}
             y={y}
@@ -96,24 +41,22 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 60}
               y={y + 35}
-              className="text-sm text-center"
+              className="text-sm text-center cursor-pointer"
               textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
           )}
         </g>
       ),
-      connectionPoint: (x: number, y: number) => ({ x: x + 60, y: y + 30 })
+      connectionPoint: (x, y) => ({ x: x + 60, y: y + 30 })
     },
     WEAK_ENTITY: {
       icon: <Square className="w-6 h-6" />,
       label: 'Weak Entity',
-      shape: ({ x, y, label, id }: Element) => (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          setEditingLabel(id);
-        }}>
+      shape: ({ x, y, label, id }) => (
+        <g>
           <rect
             x={x}
             y={y}
@@ -147,24 +90,22 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 60}
               y={y + 35}
-              className="text-sm text-center"
+              className="text-sm text-center cursor-pointer"
               textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
           )}
         </g>
       ),
-      connectionPoint: (x: number, y: number) => ({ x: x + 60, y: y + 30 })
+      connectionPoint: (x, y) => ({ x: x + 60, y: y + 30 })
     },
     ATTRIBUTE: {
       icon: <Circle className="w-6 h-6" />,
       label: 'Attribute',
-      shape: ({ x, y, label, isPrimary, id }: Element) => (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          setEditingLabel(id);
-        }}>
+      shape: ({ x, y, label, isPrimary, id }) => (
+        <g>
           <circle
             cx={x + 40}
             cy={y + 30}
@@ -187,24 +128,22 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 40}
               y={y + 35}
-              className={`text-sm text-center ${isPrimary ? 'underline' : ''}`}
+              className={`text-sm text-center cursor-pointer ${isPrimary ? 'underline' : ''}`}
               textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
           )}
         </g>
       ),
-      connectionPoint: (x: number, y: number) => ({ x: x + 40, y: y + 30 })
+      connectionPoint: (x, y) => ({ x: x + 40, y: y + 30 })
     },
     DERIVED_ATTRIBUTE: {
       icon: <Circle className="w-6 h-6" />,
       label: 'Derived',
-      shape: ({ x, y, label, id }: Element) => (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          setEditingLabel(id);
-        }}>
+      shape: ({ x, y, label, id }) => (
+        <g>
           <circle
             cx={x + 40}
             cy={y + 30}
@@ -228,24 +167,22 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 40}
               y={y + 35}
-              className="text-sm text-center"
+              className="text-sm text-center cursor-pointer"
               textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
           )}
         </g>
       ),
-      connectionPoint: (x: number, y: number) => ({ x: x + 40, y: y + 30 })
+      connectionPoint: (x, y) => ({ x: x + 40, y: y + 30 })
     },
     MULTI_VALUED_ATTRIBUTE: {
       icon: <Circle className="w-6 h-6" />,
       label: 'Multi-Valued',
-      shape: ({ x, y, label, id }: Element) => (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          setEditingLabel(id);
-        }}>
+      shape: ({ x, y, label, id }) => (
+        <g>
           <circle
             cx={x + 40}
             cy={y + 30}
@@ -274,24 +211,22 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 40}
               y={y + 35}
-              className="text-sm text-center"
+              className="text-sm text-center cursor-pointer"
               textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
           )}
         </g>
       ),
-      connectionPoint: (x: number, y: number) => ({ x: x + 40, y: y + 30 })
+      connectionPoint: (x, y) => ({ x: x + 40, y: y + 30 })
     },
     RELATIONSHIP: {
       icon: <Diamond className="w-6 h-6" />,
       label: 'Relationship',
-      shape: ({ x, y, label, id }: Element) => (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          setEditingLabel(id);
-        }}>
+      shape: ({ x, y, label, id }) => (
+        <g>
           <path
             d={`M${x + 60} ${y} L${x + 120} ${y + 30} L${x + 60} ${y + 60} L${x} ${y + 30} Z`}
             className="fill-white stroke-black stroke-2"
@@ -312,20 +247,21 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 60}
               y={y + 35}
-              className="text-sm text-center"
+              className="text-sm text-center cursor-pointer"
               textAnchor="middle"
+              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
           )}
         </g>
       ),
-      connectionPoint: (x: number, y: number) => ({ x: x + 60, y: y + 30 })
+      connectionPoint: (x, y) => ({ x: x + 60, y: y + 30 })
     }
   };
 
-  const addElement = (type: ShapeType) => {
-    const newElement: Element = {
+  const addElement = (type) => {
+    const newElement = {
       id: Date.now(),
       type,
       x: 100,
@@ -336,31 +272,26 @@ const ERDiagramApp: React.FC = () => {
     setElements([...elements, newElement]);
   };
 
-  const updateLabel = (id: number, newLabel: string) => {
+  const updateLabel = (id, newLabel) => {
     setElements(elements.map(el =>
       el.id === id ? { ...el, label: newLabel } : el
     ));
   };
 
-  const togglePrimaryKey = (id: number) => {
+  const togglePrimaryKey = (id) => {
     setElements(elements.map(el =>
       el.id === id ? { ...el, isPrimary: !el.isPrimary } : el
     ));
   };
 
-  const deleteElement = (id: number) => {
+  const deleteElement = (id) => {
     setElements(elements.filter(el => el.id !== id));
     setConnections(connections.filter(conn => 
       conn.from !== id && conn.to !== id
     ));
-    if (connecting?.id === id) {
-      setConnecting(null);
-    }
   };
 
-  const handleMouseDown = (e: React.MouseEvent, element: Element) => {
-    e.stopPropagation();
-    
+  const handleMouseDown = (e, element) => {
     if (connecting) {
       if (connecting.id !== element.id) {
         const existingConnection = connections.find(conn => 
@@ -382,8 +313,8 @@ const ERDiagramApp: React.FC = () => {
       }
       setConnecting(null);
     } else {
-      const svg = e.target as SVGElement;
-      const rect = svg.closest('svg')!.getBoundingClientRect();
+      const svg = e.target.closest('svg');
+      const rect = svg.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
@@ -396,21 +327,15 @@ const ERDiagramApp: React.FC = () => {
     }
   };
 
-  const startConnecting = (e: React.MouseEvent, element: Element) => {
-    e.stopPropagation();
-    
-    if (connecting?.id === element.id) {
-      setConnecting(null);
-    } else {
-      setConnecting(element);
-    }
+  const startConnecting = (element) => {
+    setConnecting(element);
   };
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging || !dragOffset.elementId) return;
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
 
-    const svg = e.target as SVGElement;
-    const rect = svg.closest('svg')!.getBoundingClientRect();
+    const svg = e.target.closest('svg');
+    const rect = svg.getBoundingClientRect();
     const x = e.clientX - rect.left - dragOffset.x;
     const y = e.clientY - rect.top - dragOffset.y;
 
@@ -425,7 +350,7 @@ const ERDiagramApp: React.FC = () => {
     setIsDragging(false);
   };
 
-  const updateCardinality = (connId: number, end: 'from' | 'to', value: string) => {
+  const updateCardinality = (connId, end, value) => {
     setConnections(connections.map(conn => {
       if (conn.id === connId) {
         return {
@@ -438,7 +363,7 @@ const ERDiagramApp: React.FC = () => {
     setEditingCardinality(null);
   };
 
-  const renderConnection = (conn: Connection) => {
+  const renderConnection = (conn) => {
     const fromElement = elements.find(el => el.id === conn.from);
     const toElement = elements.find(el => el.id === conn.to);
     
@@ -466,6 +391,7 @@ const ERDiagramApp: React.FC = () => {
           className="stroke-black stroke-2"
         />
         
+        {/* From Cardinality */}
         {editingCardinality === `${conn.id}-from` ? (
           <foreignObject x={fromMidpoint.x - 15} y={fromMidpoint.y - 15} width="30" height="30">
             <input
@@ -490,6 +416,7 @@ const ERDiagramApp: React.FC = () => {
           </text>
         )}
 
+        {/* To Cardinality */}
         {editingCardinality === `${conn.id}-to` ? (
           <foreignObject x={toMidpoint.x - 15} y={toMidpoint.y - 15} width="30" height="30">
             <input
@@ -517,33 +444,26 @@ const ERDiagramApp: React.FC = () => {
     );
   };
 
-  const renderElementControls = (element: Element) => (
+  const renderElementControls = (element) => (
     <g className="cursor-pointer">
       {/* Delete button */}
-      <g onClick={(e) => {
-        e.stopPropagation();
-        deleteElement(element.id);
-      }}>
-        <circle
-          cx={element.x + 125}
-          cy={element.y - 5}
-          r="10"
-          className="fill-red-500"
-        />
-        <Trash2
-          className="w-4 h-4 text-white"
-          style={{
-            transform: `translate(${element.x + 121}px, ${element.y - 7}px)`
-          }}
-        />
-      </g>
+      <circle
+        cx={element.x + 125}
+        cy={element.y - 5}
+        r="10"
+        className="fill-red-500"
+        onClick={() => deleteElement(element.id)}
+      />
+      <Trash2
+        className="w-4 h-4 text-white"
+        style={{
+          transform: `translate(${element.x + 121}px, ${element.y - 7}px)`
+        }}
+      />
       
       {/* Primary key toggle for attributes */}
       {element.type === 'ATTRIBUTE' && (
-        <g onClick={(e) => {
-          e.stopPropagation();
-          togglePrimaryKey(element.id);
-        }}>
+        <g onClick={() => togglePrimaryKey(element.id)}>
           <circle
             cx={element.x + 125}
             cy={element.y + 15}
@@ -562,7 +482,7 @@ const ERDiagramApp: React.FC = () => {
       )}
       
       {/* Connect button */}
-      <g onClick={(e) => startConnecting(e, element)}>
+      <g onClick={() => startConnecting(element)}>
         <circle
           cx={element.x + 125}
           cy={element.y + 35}
@@ -578,10 +498,7 @@ const ERDiagramApp: React.FC = () => {
       </g>
 
       {/* Rename button */}
-      <g onClick={(e) => {
-        e.stopPropagation();
-        setEditingLabel(element.id);
-      }}>
+      <g onClick={() => setEditingLabel(element.id)}>
         <circle
           cx={element.x + 125}
           cy={element.y + 55}
@@ -606,7 +523,7 @@ const ERDiagramApp: React.FC = () => {
           {Object.entries(elementTypes).map(([type, { icon, label }]) => (
             <button
               key={type}
-              onClick={() => addElement(type as ShapeType)}
+              onClick={() => addElement(type)}
               className="flex items-center px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               {icon}
