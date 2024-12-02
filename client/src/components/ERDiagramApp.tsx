@@ -52,7 +52,8 @@ const ERDiagramApp: React.FC = () => {
   // Clear connecting state when clicking outside
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
-      if (!(e.target as Element).closest('svg')) {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('svg')) {
         setConnecting(null);
       }
     };
