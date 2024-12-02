@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { PlusCircle, Trash2, Square, Circle, Diamond, Link, Edit2 } from 'lucide-react';
+import { PlusCircle, Trash2, Square, Circle, Diamond, Link, Edit2, Undo, Redo } from 'lucide-react';
 
 // Shape types
 type ShapeType = 'ENTITY' | 'WEAK_ENTITY' | 'ATTRIBUTE' | 'DERIVED_ATTRIBUTE' | 'MULTI_VALUED_ATTRIBUTE' | 'RELATIONSHIP';
@@ -48,6 +48,8 @@ const ERDiagramApp: React.FC = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editingCardinality, setEditingCardinality] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<number | null>(null);
+  const [history, setHistory] = useState<Connection[][]>([[]]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState<number>(0);
 
   // Clear connecting state when clicking outside
   useEffect(() => {
@@ -58,9 +60,24 @@ const ERDiagramApp: React.FC = () => {
       }
     };
 
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      }
+    };
+
     document.addEventListener('click', handleGlobalClick);
-    return () => document.removeEventListener('click', handleGlobalClick);
-  }, []);
+    document.addEventListener('keydown', handleKeyboard);
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('keydown', handleKeyboard);
+    };
+  }, [currentHistoryIndex]);
 
   const elementTypes: Record<ShapeType, ElementType> = {
     ENTITY: {
@@ -350,11 +367,28 @@ const ERDiagramApp: React.FC = () => {
 
   const deleteElement = (id: number) => {
     setElements(elements.filter(el => el.id !== id));
-    setConnections(connections.filter(conn => 
+    const newConnections = connections.filter(conn => 
       conn.from !== id && conn.to !== id
-    ));
+    );
+    setConnections(newConnections);
+    setHistory([...history.slice(0, currentHistoryIndex + 1), newConnections]);
+    setCurrentHistoryIndex(currentHistoryIndex + 1);
     if (connecting?.id === id) {
       setConnecting(null);
+    }
+  };
+
+  const handleUndo = () => {
+    if (currentHistoryIndex > 0) {
+      setCurrentHistoryIndex(currentHistoryIndex - 1);
+      setConnections(history[currentHistoryIndex - 1]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (currentHistoryIndex < history.length - 1) {
+      setCurrentHistoryIndex(currentHistoryIndex + 1);
+      setConnections(history[currentHistoryIndex + 1]);
     }
   };
 
@@ -369,15 +403,21 @@ const ERDiagramApp: React.FC = () => {
         );
 
         if (existingConnection) {
-          setConnections(connections.filter(conn => conn.id !== existingConnection.id));
+          const newConnections = connections.filter(conn => conn.id !== existingConnection.id);
+          setConnections(newConnections);
+          setHistory([...history.slice(0, currentHistoryIndex + 1), newConnections]);
+          setCurrentHistoryIndex(currentHistoryIndex + 1);
         } else {
-          setConnections([...connections, {
+          const newConnections = [...connections, {
             id: Date.now(),
             from: connecting.id,
             to: element.id,
             fromCardinality: "1",
             toCardinality: "N"
-          }]);
+          }];
+          setConnections(newConnections);
+          setHistory([...history.slice(0, currentHistoryIndex + 1), newConnections]);
+          setCurrentHistoryIndex(currentHistoryIndex + 1);
         }
       }
       setConnecting(null);
@@ -602,8 +642,9 @@ const ERDiagramApp: React.FC = () => {
     <div className="flex flex-col h-screen bg-gray-100">
       <div className="bg-white p-4 border-b">
         <h1 className="text-xl font-bold mb-4">ER Diagram Editor</h1>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(elementTypes).map(([type, { icon, label }]) => (
+        <div className="flex items-center gap-4">
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(elementTypes).map(([type, { icon, label }]) => (
             <button
               key={type}
               onClick={() => addElement(type as ShapeType)}
@@ -613,6 +654,33 @@ const ERDiagramApp: React.FC = () => {
               <span className="ml-2">{label}</span>
             </button>
           ))}
+          </div>
+          <div className="flex gap-2 ml-4 border-l pl-4">
+            <button
+              onClick={handleUndo}
+              disabled={currentHistoryIndex === 0}
+              className={`flex items-center px-3 py-2 rounded ${
+                currentHistoryIndex === 0 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-500 hover:bg-blue-600'
+              } text-white`}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={currentHistoryIndex === history.length - 1}
+              className={`flex items-center px-3 py-2 rounded ${
+                currentHistoryIndex === history.length - 1 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-500 hover:bg-blue-600'
+              } text-white`}
+              title="Redo (Ctrl+Shift+Z)"
+            >
+              <Redo className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
