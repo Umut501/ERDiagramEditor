@@ -67,7 +67,10 @@ const ERDiagramApp: React.FC = () => {
       icon: <Square className="w-6 h-6" />,
       label: 'Entity',
       shape: ({ x, y, label, id }: Element) => (
-        <g>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          setEditingLabel(id);
+        }}>
           <rect
             x={x}
             y={y}
@@ -93,9 +96,8 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 60}
               y={y + 35}
-              className="text-sm text-center cursor-pointer"
+              className="text-sm text-center"
               textAnchor="middle"
-              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
@@ -108,7 +110,10 @@ const ERDiagramApp: React.FC = () => {
       icon: <Square className="w-6 h-6" />,
       label: 'Weak Entity',
       shape: ({ x, y, label, id }: Element) => (
-        <g>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          setEditingLabel(id);
+        }}>
           <rect
             x={x}
             y={y}
@@ -142,9 +147,8 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 60}
               y={y + 35}
-              className="text-sm text-center cursor-pointer"
+              className="text-sm text-center"
               textAnchor="middle"
-              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
@@ -157,7 +161,10 @@ const ERDiagramApp: React.FC = () => {
       icon: <Circle className="w-6 h-6" />,
       label: 'Attribute',
       shape: ({ x, y, label, isPrimary, id }: Element) => (
-        <g>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          setEditingLabel(id);
+        }}>
           <circle
             cx={x + 40}
             cy={y + 30}
@@ -180,9 +187,8 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 40}
               y={y + 35}
-              className={`text-sm text-center cursor-pointer ${isPrimary ? 'underline' : ''}`}
+              className={`text-sm text-center ${isPrimary ? 'underline' : ''}`}
               textAnchor="middle"
-              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
@@ -195,7 +201,10 @@ const ERDiagramApp: React.FC = () => {
       icon: <Circle className="w-6 h-6" />,
       label: 'Derived',
       shape: ({ x, y, label, id }: Element) => (
-        <g>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          setEditingLabel(id);
+        }}>
           <circle
             cx={x + 40}
             cy={y + 30}
@@ -219,9 +228,8 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 40}
               y={y + 35}
-              className="text-sm text-center cursor-pointer"
+              className="text-sm text-center"
               textAnchor="middle"
-              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
@@ -234,7 +242,10 @@ const ERDiagramApp: React.FC = () => {
       icon: <Circle className="w-6 h-6" />,
       label: 'Multi-Valued',
       shape: ({ x, y, label, id }: Element) => (
-        <g>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          setEditingLabel(id);
+        }}>
           <circle
             cx={x + 40}
             cy={y + 30}
@@ -263,9 +274,8 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 40}
               y={y + 35}
-              className="text-sm text-center cursor-pointer"
+              className="text-sm text-center"
               textAnchor="middle"
-              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
@@ -278,7 +288,10 @@ const ERDiagramApp: React.FC = () => {
       icon: <Diamond className="w-6 h-6" />,
       label: 'Relationship',
       shape: ({ x, y, label, id }: Element) => (
-        <g>
+        <g onClick={(e) => {
+          e.stopPropagation();
+          setEditingLabel(id);
+        }}>
           <path
             d={`M${x + 60} ${y} L${x + 120} ${y + 30} L${x + 60} ${y + 60} L${x} ${y + 30} Z`}
             className="fill-white stroke-black stroke-2"
@@ -299,9 +312,8 @@ const ERDiagramApp: React.FC = () => {
             <text
               x={x + 60}
               y={y + 35}
-              className="text-sm text-center cursor-pointer"
+              className="text-sm text-center"
               textAnchor="middle"
-              onClick={() => setEditingLabel(id)}
             >
               {label}
             </text>
