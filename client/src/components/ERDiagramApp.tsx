@@ -525,15 +525,50 @@ const ERDiagramApp: React.FC = () => {
         deleteElement(element.id);
       }}>
         <circle
-          cx={element.x + 125}
+          cx={element.x + 95}
           cy={element.y - 5}
-          r="10"
+          r="7"
           className="fill-red-500"
         />
         <Trash2
-          className="w-4 h-4 text-white"
+          className="w-3 h-3 text-white"
           style={{
-            transform: `translate(${element.x + 121}px, ${element.y - 7}px)`
+            transform: `translate(${element.x + 92}px, ${element.y - 7}px)`
+          }}
+        />
+      </g>
+      
+      {/* Connect button */}
+      <g onClick={(e) => startConnecting(e, element)}>
+        <circle
+          cx={element.x + 115}
+          cy={element.y - 5}
+          r="7"
+          className={`${connecting?.id === element.id ? 'fill-green-500' : 'fill-blue-500'}`}
+        />
+        <Link
+          className="w-3 h-3 text-white"
+          style={{
+            transform: `translate(${element.x + 112}px, ${element.y - 7}px)`
+          }}
+        />
+      </g>
+
+      {/* Rename button */}
+      <g onClick={(e) => {
+        e.stopPropagation();
+        setEditingLabel(element.id);
+      }}>
+        <circle
+          cx={element.x + 135}
+          cy={element.y - 5}
+          r="7"
+          className="fill-purple-500"
+        />
+        <Edit2
+          className="w-3 h-3 text-white"
+          style={{
+            transform: `translate(${element.x + 132}px, ${element.y - 7}px)`
           }}
         />
       </g>
@@ -545,56 +580,21 @@ const ERDiagramApp: React.FC = () => {
           togglePrimaryKey(element.id);
         }}>
           <circle
-            cx={element.x + 125}
-            cy={element.y + 15}
-            r="10"
+            cx={element.x + 155}
+            cy={element.y - 5}
+            r="7"
             className={`${element.isPrimary ? 'fill-green-500' : 'fill-gray-400'}`}
           />
           <text
-            x={element.x + 125}
-            y={element.y + 19}
-            className="text-white text-xs font-bold"
+            x={element.x + 155}
+            y={element.y - 2}
+            className="text-white text-[10px] font-bold"
             textAnchor="middle"
           >
             PK
           </text>
         </g>
       )}
-      
-      {/* Connect button */}
-      <g onClick={(e) => startConnecting(e, element)}>
-        <circle
-          cx={element.x + 125}
-          cy={element.y + 35}
-          r="10"
-          className={`${connecting?.id === element.id ? 'fill-green-500' : 'fill-blue-500'}`}
-        />
-        <Link
-          className="w-4 h-4 text-white"
-          style={{
-            transform: `translate(${element.x + 121}px, ${element.y + 33}px)`
-          }}
-        />
-      </g>
-
-      {/* Rename button */}
-      <g onClick={(e) => {
-        e.stopPropagation();
-        setEditingLabel(element.id);
-      }}>
-        <circle
-          cx={element.x + 125}
-          cy={element.y + 55}
-          r="10"
-          className="fill-purple-500"
-        />
-        <Edit2
-          className="w-4 h-4 text-white"
-          style={{
-            transform: `translate(${element.x + 121}px, ${element.y + 53}px)`
-          }}
-        />
-      </g>
     </g>
   );
 
