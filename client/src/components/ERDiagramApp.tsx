@@ -1,5 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { PlusCircle, Trash2, Square, Circle, Diamond, Link, Edit2 } from 'lucide-react';
+import { PlusCircle, Trash2, Square, Circle, Diamond, Link, Edit2, Undo2, Redo2 } from 'lucide-react';
+
+interface HistoryState {
+  connections: Connection[];
+}
 
 // Shape types
 type ShapeType = 'ENTITY' | 'WEAK_ENTITY' | 'ATTRIBUTE' | 'DERIVED_ATTRIBUTE' | 'MULTI_VALUED_ATTRIBUTE' | 'RELATIONSHIP';
@@ -48,6 +52,50 @@ const ERDiagramApp: React.FC = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editingCardinality, setEditingCardinality] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<number | null>(null);
+  const [history, setHistory] = useState<HistoryState[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState<number>(-1);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentHistoryIndex, history]);
+
+  // Add state to history when connections change
+  useEffect(() => {
+    if (connections.length > 0 || history.length === 0) {
+      const newState = { connections: [...connections] };
+      setHistory(prev => [...prev.slice(0, currentHistoryIndex + 1), newState]);
+      setCurrentHistoryIndex(prev => prev + 1);
+    }
+  }, [connections]);
+
+  const handleUndo = () => {
+    if (currentHistoryIndex > 0) {
+      const newIndex = currentHistoryIndex - 1;
+      setCurrentHistoryIndex(newIndex);
+      setConnections(history[newIndex].connections);
+    }
+  };
+
+  const handleRedo = () => {
+    if (currentHistoryIndex < history.length - 1) {
+      const newIndex = currentHistoryIndex + 1;
+      setCurrentHistoryIndex(newIndex);
+      setConnections(history[newIndex].connections);
+    }
+  };
 
   // Clear connecting state when clicking outside
   useEffect(() => {
@@ -602,7 +650,8 @@ const ERDiagramApp: React.FC = () => {
     <div className="flex flex-col h-screen bg-gray-100">
       <div className="bg-white p-4 border-b">
         <h1 className="text-xl font-bold mb-4">ER Diagram Editor</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-2">
           {Object.entries(elementTypes).map(([type, { icon, label }]) => (
             <button
               key={type}
@@ -613,6 +662,25 @@ const ERDiagramApp: React.FC = () => {
               <span className="ml-2">{label}</span>
             </button>
           ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleUndo}
+              className={`p-2 rounded ${currentHistoryIndex > 0 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300'} text-white`}
+              disabled={currentHistoryIndex <= 0}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleRedo}
+              className={`p-2 rounded ${currentHistoryIndex < history.length - 1 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300'} text-white`}
+              disabled={currentHistoryIndex >= history.length - 1}
+              title="Redo (Ctrl+Y)"
+            >
+              <Redo2 className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
