@@ -48,7 +48,6 @@ const ERDiagramApp: React.FC = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editingCardinality, setEditingCardinality] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<number | null>(null);
-  
 
   // Clear connecting state when clicking outside
   useEffect(() => {
